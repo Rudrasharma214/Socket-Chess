@@ -2,61 +2,57 @@ const socket = io();
 const chess = new Chess();
 const boardElement = document.querySelector(".chessboard");
 
-let draggedPiece = null;
-let sourceSquare = null;
-let playerRole = null;
+let draggedpiece = null;
+let soursesquare = null;
+let playerrole = null;
 
 const renderBoard = function () {
+    boardElement.innerHTML = "";
     const board = chess.board();
-    boardElement.innerHTML = ""; // Clear previous board rendering
+
     board.forEach((row, rowIndex) => {
-        row.forEach((square, squareIndex) => {
+        row.forEach((square, colIndex) => {
             const squareElement = document.createElement("div");
-            squareElement.classList.add(
-                "square",
-                (rowIndex + squareIndex) % 2 === 0 ? "light" : "dark"
-            );
+            squareElement.classList.add("square", (rowIndex + colIndex) % 2 === 0 ? "light" : "dark");
 
             squareElement.dataset.row = rowIndex;
-            squareElement.dataset.col = squareIndex;
+            squareElement.dataset.col = colIndex;
 
             if (square) {
                 const pieceElement = document.createElement("div");
-                pieceElement.classList.add(
-                    "piece",
-                    square.color === "w" ? "white" : "black"
-                );
+                pieceElement.classList.add("piece", square.color === "w" ? "text-white" : "text-black");
                 pieceElement.innerText = getPieceUnicode(square);
-                pieceElement.draggable = playerRole === square.color;
+                pieceElement.draggable = playerrole === square.color;
 
                 pieceElement.addEventListener("dragstart", (e) => {
                     if (pieceElement.draggable) {
-                        draggedPiece = pieceElement;
-                        sourceSquare = { row: rowIndex, col: squareIndex };
+                        draggedpiece = pieceElement;
+                        soursesquare = { row: rowIndex, col: colIndex };
                         e.dataTransfer.setData("text/plain", "");
                     }
-                });
-
-                pieceElement.addEventListener("dragend", () => {
-                    draggedPiece = null;
-                    sourceSquare = null;
                 });
 
                 squareElement.appendChild(pieceElement);
             }
 
-            squareElement.addEventListener("dragover", (e) => {
-                e.preventDefault();
-            });
-
+            squareElement.addEventListener("dragover", (e) => e.preventDefault());
             squareElement.addEventListener("drop", (e) => {
                 e.preventDefault();
-                if (draggedPiece) {
-                    const targetSquare = {
+                if (draggedpiece) {
+                    const targetsource = {
                         row: parseInt(squareElement.dataset.row),
                         col: parseInt(squareElement.dataset.col),
                     };
-                    handleMove(sourceSquare, targetSquare);
+                    handleMove(soursesquare, targetsource);
+                }
+            });
+
+            squareElement.addEventListener("click", () => {
+                if (!soursesquare) {
+                    soursesquare = { row: rowIndex, col: colIndex };
+                } else {
+                    handleMove(soursesquare, { row: rowIndex, col: colIndex });
+                    soursesquare = null;
                 }
             });
 
@@ -64,7 +60,7 @@ const renderBoard = function () {
         });
     });
 
-    if (playerRole === "b") {
+    if (playerrole === "b") {
         boardElement.classList.add("flipped");
     } else {
         boardElement.classList.remove("flipped");
@@ -77,48 +73,33 @@ const handleMove = function (source, target) {
         to: `${String.fromCharCode(97 + target.col)}${8 - target.row}`,
         promotion: "q",
     };
-    console.log("Move object:", move);
     socket.emit("move", move);
 };
 
 const getPieceUnicode = function (piece) {
     const unicodePieces = {
-        p: "♙",
-        r: "♖",
-        n: "♘",
-        b: "♗",
-        q: "♕",
-        k: "♔",
-        P: "♙",
-        R: "♖",
-        N: "♘",
-        B: "♗",
-        Q: "♕",
-        K: "♔",
+        p: "♙", r: "♖", n: "♘", b: "♗", q: "♕", k: "♔",
+        P: "♙", N: "♘", R: "♖", B: "♗", Q: "♕", K: "♔",
     };
     return unicodePieces[piece.type] || "";
 };
 
-socket.on("playerrole", function (role) {
-    console.log("Assigned role:", role);
-    playerRole = role;
+socket.on("playerRole", (role) => {
+    playerrole = role;
     renderBoard();
 });
 
-socket.on("spectatorrole", function () {
-    console.log("Assigned as spectator");
-    playerRole = null;
+socket.on("spectatorRole", () => {
+    playerrole = null;
     renderBoard();
 });
 
-socket.on("boardState", function (fen) {
-    console.log("Board state received:", fen);
+socket.on("boardState", (fen) => {
     chess.load(fen);
     renderBoard();
 });
 
-socket.on("move", function (move) {
-    // console.log("Move received:", move);
+socket.on("move", (move) => {
     chess.move(move);
     renderBoard();
 });
