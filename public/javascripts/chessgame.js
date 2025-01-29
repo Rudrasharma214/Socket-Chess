@@ -6,6 +6,7 @@ let draggedpiece = null;
 let soursesquare = null;
 let playerrole = null;
 
+// Renders the chessboard
 const renderBoard = function () {
     boardElement.innerHTML = "";
     const board = chess.board();
@@ -24,6 +25,7 @@ const renderBoard = function () {
                 pieceElement.innerText = getPieceUnicode(square);
                 pieceElement.draggable = playerrole === square.color;
 
+                // Desktop Drag Events
                 pieceElement.addEventListener("dragstart", (e) => {
                     if (pieceElement.draggable) {
                         draggedpiece = pieceElement;
@@ -32,9 +34,19 @@ const renderBoard = function () {
                     }
                 });
 
+                // Mobile Touch Events
+                pieceElement.addEventListener("touchstart", (e) => {
+                    e.preventDefault();
+                    if (pieceElement.draggable) {
+                        draggedpiece = pieceElement;
+                        soursesquare = { row: rowIndex, col: colIndex };
+                    }
+                });
+
                 squareElement.appendChild(pieceElement);
             }
 
+            // Allow dropping pieces
             squareElement.addEventListener("dragover", (e) => e.preventDefault());
             squareElement.addEventListener("drop", (e) => {
                 e.preventDefault();
@@ -44,6 +56,17 @@ const renderBoard = function () {
                         col: parseInt(squareElement.dataset.col),
                     };
                     handleMove(soursesquare, targetsource);
+                }
+            });
+
+            // Mobile Tap to Move Support
+            squareElement.addEventListener("touchend", (e) => {
+                e.preventDefault();
+                if (!soursesquare) {
+                    soursesquare = { row: rowIndex, col: colIndex };
+                } else {
+                    handleMove(soursesquare, { row: rowIndex, col: colIndex });
+                    soursesquare = null;
                 }
             });
 
@@ -67,6 +90,7 @@ const renderBoard = function () {
     }
 };
 
+// Handles move request
 const handleMove = function (source, target) {
     const move = {
         from: `${String.fromCharCode(97 + source.col)}${8 - source.row}`,
@@ -76,6 +100,7 @@ const handleMove = function (source, target) {
     socket.emit("move", move);
 };
 
+// Returns chess piece Unicode
 const getPieceUnicode = function (piece) {
     const unicodePieces = {
         p: "♙", r: "♖", n: "♘", b: "♗", q: "♕", k: "♔",
@@ -84,6 +109,7 @@ const getPieceUnicode = function (piece) {
     return unicodePieces[piece.type] || "";
 };
 
+// Socket.io Events
 socket.on("playerRole", (role) => {
     playerrole = role;
     renderBoard();
@@ -104,4 +130,5 @@ socket.on("move", (move) => {
     renderBoard();
 });
 
+// Initial render
 renderBoard();
