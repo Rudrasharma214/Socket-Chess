@@ -118,7 +118,7 @@ socket.on("boardState", function (fen) {
 });
 
 socket.on("move", function (move) {
-    // console.log("Move received:", move);
+    console.log("Move received:", move);
     chess.move(move);
     renderBoard();
 });
