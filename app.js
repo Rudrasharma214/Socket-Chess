@@ -22,22 +22,19 @@ app.get("/", function (req, res) {
 });
 
 io.on("connection", function (uniquesocket) {
-    console.log("New connection established. Socket ID:", uniquesocket.id);
+    console.log("Player Connected:", uniquesocket.id);
 
-    // Assign roles
     if (!players.white) {
         players.white = uniquesocket.id;
-        uniquesocket.emit("playerrole", "w");
+        uniquesocket.emit("playerRole", "w");
     } else if (!players.black) {
         players.black = uniquesocket.id;
-        uniquesocket.emit("playerrole", "b");
+        uniquesocket.emit("playerRole", "b");
     } else {
-        uniquesocket.emit("spectatorrole");
+        uniquesocket.emit("spectatorRole");
     }
 
-    // Handle disconnect
     uniquesocket.on("disconnect", function () {
-        console.log("Disconnected:", uniquesocket.id);
         if (uniquesocket.id === players.white) {
             delete players.white;
         }
@@ -46,11 +43,8 @@ io.on("connection", function (uniquesocket) {
         }
     });
 
-    // Handle moves
     uniquesocket.on("move", function (move) {
         try {
-            console.log("Move received on server:", move);
-
             if (chess.turn() === "w" && uniquesocket.id !== players.white) return;
             if (chess.turn() === "b" && uniquesocket.id !== players.black) return;
 
@@ -64,12 +58,12 @@ io.on("connection", function (uniquesocket) {
                 uniquesocket.emit("Invalid move", move);
             }
         } catch (err) {
-            console.error("Error processing move:", err);
+            console.log(err);
             uniquesocket.emit("Invalid move", move);
         }
     });
 });
 
 server.listen(3000, function () {
-    console.log("Listening to port 3000");
+    console.log("Listening on port 3000");
 });
