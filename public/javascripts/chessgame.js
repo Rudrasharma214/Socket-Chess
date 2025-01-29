@@ -2,80 +2,61 @@ const socket = io();
 const chess = new Chess();
 const boardElement = document.querySelector(".chessboard");
 
-let draggedpiece = null;
-let soursesquare = null;
-let playerrole = null;
+let draggedPiece = null;
+let sourceSquare = null;
+let playerRole = null;
 
-// Renders the chessboard
 const renderBoard = function () {
-    boardElement.innerHTML = "";
     const board = chess.board();
-
+    boardElement.innerHTML = ""; // Clear previous board rendering
     board.forEach((row, rowIndex) => {
-        row.forEach((square, colIndex) => {
+        row.forEach((square, squareIndex) => {
             const squareElement = document.createElement("div");
-            squareElement.classList.add("square", (rowIndex + colIndex) % 2 === 0 ? "light" : "dark");
+            squareElement.classList.add(
+                "square",
+                (rowIndex + squareIndex) % 2 === 0 ? "light" : "dark"
+            );
 
             squareElement.dataset.row = rowIndex;
-            squareElement.dataset.col = colIndex;
+            squareElement.dataset.col = squareIndex;
 
             if (square) {
                 const pieceElement = document.createElement("div");
-                pieceElement.classList.add("piece", square.color === "w" ? "text-white" : "text-black");
+                pieceElement.classList.add(
+                    "piece",
+                    square.color === "w" ? "white" : "black"
+                );
                 pieceElement.innerText = getPieceUnicode(square);
-                pieceElement.draggable = playerrole === square.color;
+                pieceElement.draggable = playerRole === square.color;
 
-                // Desktop Drag Events
                 pieceElement.addEventListener("dragstart", (e) => {
                     if (pieceElement.draggable) {
-                        draggedpiece = pieceElement;
-                        soursesquare = { row: rowIndex, col: colIndex };
+                        draggedPiece = pieceElement;
+                        sourceSquare = { row: rowIndex, col: squareIndex };
                         e.dataTransfer.setData("text/plain", "");
                     }
                 });
 
-                // Mobile Touch Events
-                pieceElement.addEventListener("touchstart", (e) => {
-                    e.preventDefault();
-                    if (pieceElement.draggable) {
-                        draggedpiece = pieceElement;
-                        soursesquare = { row: rowIndex, col: colIndex };
-                    }
+                pieceElement.addEventListener("dragend", () => {
+                    draggedPiece = null;
+                    sourceSquare = null;
                 });
 
                 squareElement.appendChild(pieceElement);
             }
 
-            // Allow dropping pieces
-            squareElement.addEventListener("dragover", (e) => e.preventDefault());
+            squareElement.addEventListener("dragover", (e) => {
+                e.preventDefault();
+            });
+
             squareElement.addEventListener("drop", (e) => {
                 e.preventDefault();
-                if (draggedpiece) {
-                    const targetsource = {
+                if (draggedPiece) {
+                    const targetSquare = {
                         row: parseInt(squareElement.dataset.row),
                         col: parseInt(squareElement.dataset.col),
                     };
-                    handleMove(soursesquare, targetsource);
-                }
-            });
-
-            // Mobile Tap to Move Support
-            squareElement.addEventListener("touchend", (e) => {
-                e.preventDefault();
-                if (!soursesquare) {
-                    soursesquare = { row: rowIndex, col: colIndex };
-                } else {
-                    handleMove(soursesquare, { row: rowIndex, col: colIndex });
-                    soursesquare = null;
-                }
-            });
-
-            squareElement.addEventListener("click", () => {
-                if (!soursesquare) {
-                    soursesquare = { row: rowIndex, col: colIndex };
-                } else {
-                    handleMove(soursesquare, { row: rowIndex, col: colIndex });
-                    soursesquare = null;
+                    handleMove(sourceSquare, targetSquare);
                 }
             });
 
@@ -83,52 +64,63 @@ const renderBoard = function () {
         });
     });
 
-    if (playerrole === "b") {
+    if (playerRole === "b") {
         boardElement.classList.add("flipped");
     } else {
         boardElement.classList.remove("flipped");
     }
 };
 
-// Handles move request
 const handleMove = function (source, target) {
     const move = {
         from: `${String.fromCharCode(97 + source.col)}${8 - source.row}`,
         to: `${String.fromCharCode(97 + target.col)}${8 - target.row}`,
         promotion: "q",
     };
+    console.log("Move object:", move);
     socket.emit("move", move);
 };
 
-// Returns chess piece Unicode
 const getPieceUnicode = function (piece) {
     const unicodePieces = {
-        p: "♙", r: "♖", n: "♘", b: "♗", q: "♕", k: "♔",
-        P: "♙", N: "♘", R: "♖", B: "♗", Q: "♕", K: "♔",
+        p: "♙",
+        r: "♖",
+        n: "♘",
+        b: "♗",
+        q: "♕",
+        k: "♔",
+        P: "♙",
+        R: "♖",
+        N: "♘",
+        B: "♗",
+        Q: "♕",
+        K: "♔",
     };
     return unicodePieces[piece.type] || "";
 };
 
-// Socket.io Events
-socket.on("playerRole", (role) => {
-    playerrole = role;
+socket.on("playerrole", function (role) {
+    console.log("Assigned role:", role);
+    playerRole = role;
     renderBoard();
 });
 
-socket.on("spectatorRole", () => {
-    playerrole = null;
+socket.on("spectatorrole", function () {
+    console.log("Assigned as spectator");
+    playerRole = null;
     renderBoard();
 });
 
-socket.on("boardState", (fen) => {
+socket.on("boardState", function (fen) {
+    console.log("Board state received:", fen);
     chess.load(fen);
     renderBoard();
 });
 
-socket.on("move", (move) => {
+socket.on("move", function (move) {
+    // console.log("Move received:", move);
     chess.move(move);
     renderBoard();
 });
 
-// Initial render
 renderBoard();
