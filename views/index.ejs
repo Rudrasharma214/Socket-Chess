@@ -14,7 +14,8 @@
             width: 400px;
             height: 400px;
             transform: rotate(0deg);
-            border: 8px solid #8B4513; /* Dark wooden border */
+            border: 8px solid #8B4513;
+            /* Dark wooden border */
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
         }
 
@@ -38,11 +39,13 @@
         }
 
         .square.light {
-            background-color: #D2B48C; /* Light wooden tone */
+            background-color: #D2B48C;
+            /* Light wooden tone */
         }
 
         .square.dark {
-            background-color: #8B4513; /* Dark wooden tone */
+            background-color: #8B4513;
+            /* Dark wooden tone */
         }
 
         .piece {
@@ -58,6 +61,24 @@
             opacity: 0.5;
         }
 
+        /* Highlight squares for legal moves */
+        .highlight {
+            background-color: rgba(50, 205, 50, 0.6);
+            /* Light green overlay */
+            border: 3px solid limegreen;
+            /* Clear border */
+            border-radius: 10px;
+            box-shadow: 0 0 10px 3px limegreen;
+        }
+
+        /* If a legal move involves capturing a piece */
+        .highlight.capture {
+            background-color: rgba(255, 0, 0, 0.6);
+            /* Light red overlay */
+            border: 3px solid red;
+            box-shadow: 0 0 10px 3px red;
+        }
+
         /* Rotate pieces for black player */
         .flipped .piece {
             transform: rotate(180deg);
@@ -67,17 +88,18 @@
 
 <body>
 
-    <div class="w-full h-screen flex items-center justify-center bg-zinc-900">
+    <div class="w-full h-screen flex flex-col items-center justify-center bg-zinc-900">
         <div class="chessboard"></div>
+        <button id="undoButton" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Undo Move</button>
     </div>
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
         integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous">
-    </script>
+        </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"
         integrity="sha512-xRllwz2gdZciIB+AkEbeq+gVhX8VB8XsfqeFbUh+SzHlN96dEduwtTuVuc2u9EROlmW9+yhRlxjif66ORpsgVA=="
         crossorigin="anonymous" referrerpolicy="no-referrer">
-    </script>
+        </script>
     <script src="/javascripts/chessgame.js"></script>
 </body>
 
