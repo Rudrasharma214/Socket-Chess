@@ -10,7 +10,7 @@ const io = socket(server);
 const chess = new Chess();
 
 let players = {};
-let currentplayer = "w";
+let moveHistory = [];
 
 app.set("view engine", "ejs");
 app.use(express.json());
@@ -56,9 +56,14 @@ io.on("connection", function (uniquesocket) {
 
             const result = chess.move(move);
             if (result) {
-                currentplayer = chess.turn();
+                moveHistory.push(chess.fen()); // Save board state before move
                 io.emit("move", move);
                 io.emit("boardState", chess.fen());
+
+                if (chess.isGameOver()) {
+                    let winner = chess.turn() === "w" ? "b" : "w"; // Opponent wins
+                    io.emit("gameOver", { winner });
+                }
             } else {
                 console.log("Invalid move:", move);
                 uniquesocket.emit("Invalid move", move);
@@ -66,6 +71,16 @@ io.on("connection", function (uniquesocket) {
         } catch (err) {
             console.error("Error processing move:", err);
             uniquesocket.emit("Invalid move", move);
+        }
+    });
+
+    // Handle Undo Move
+    uniquesocket.on("undoMove", function () {
+        if (moveHistory.length > 1) {
+            moveHistory.pop(); // Remove last move
+            let previousState = moveHistory[moveHistory.length - 1];
+            chess.load(previousState);
+            io.emit("undoMove", chess.fen());
         }
     });
 });
