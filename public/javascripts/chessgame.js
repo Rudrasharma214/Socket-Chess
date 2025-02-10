@@ -1,10 +1,12 @@
 const socket = io();
 const chess = new Chess();
 const boardElement = document.querySelector(".chessboard");
+const undoButton = document.getElementById("undoButton");
 
 let draggedPiece = null;
 let sourceSquare = null;
 let playerRole = null;
+let selectedPiece = null; // Track selected piece
 
 const renderBoard = function () {
     const board = chess.board();
@@ -40,6 +42,12 @@ const renderBoard = function () {
                 pieceElement.addEventListener("dragend", () => {
                     draggedPiece = null;
                     sourceSquare = null;
+                });
+
+                pieceElement.addEventListener("click", () => {
+                    if (square.color === playerRole) {
+                        highlightLegalMoves(rowIndex, squareIndex);
+                    }
                 });
 
                 squareElement.appendChild(pieceElement);
@@ -79,6 +87,35 @@ const handleMove = function (source, target) {
     };
     console.log("Move object:", move);
     socket.emit("move", move);
+    clearHighlights(); // Clear highlights after move
+};
+
+const highlightLegalMoves = function (row, col) {
+    clearHighlights();
+
+    const square = chess.board()[row][col];
+    if (!square) return;
+
+    const piecePosition = `${String.fromCharCode(97 + col)}${8 - row}`;
+    const moves = chess.moves({ square: piecePosition, verbose: true });
+
+    moves.forEach((move) => {
+        const targetCol = move.to.charCodeAt(0) - 97;
+        const targetRow = 8 - parseInt(move.to[1]);
+
+        const squareElement = document.querySelector(
+            `[data-row="${targetRow}"][data-col="${targetCol}"]`
+        );
+        if (squareElement) {
+            squareElement.classList.add("highlight");
+        }
+    });
+};
+
+const clearHighlights = function () {
+    document.querySelectorAll(".highlight").forEach((element) => {
+        element.classList.remove("highlight");
+    });
 };
 
 const getPieceUnicode = function (piece) {
@@ -122,5 +159,27 @@ socket.on("move", function (move) {
     chess.move(move);
     renderBoard();
 });
+
+socket.on("gameOver", function ({ winner }) {
+    if (playerRole === winner) {
+        alert("Congratulations! You won!");
+    } else if (playerRole) {
+        alert("Sorry, you lost.");
+    } else {
+        alert("Game over!");
+    }
+});
+
+// Handle Undo Move
+undoButton.addEventListener("click", () => {
+    socket.emit("undoMove");
+});
+
+socket.on("undoMove", function (fen) {
+    console.log("Undo move received, new FEN:", fen);
+    chess.load(fen);
+    renderBoard();
+});
+
 
 renderBoard();
