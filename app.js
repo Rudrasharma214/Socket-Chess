@@ -56,14 +56,9 @@ io.on("connection", function (uniquesocket) {
 
             const result = chess.move(move);
             if (result) {
-                moveHistory.push(chess.fen()); // Save board state before move
+                moveHistory.push(move);
                 io.emit("move", move);
                 io.emit("boardState", chess.fen());
-
-                if (chess.isGameOver()) {
-                    let winner = chess.turn() === "w" ? "b" : "w"; // Opponent wins
-                    io.emit("gameOver", { winner });
-                }
             } else {
                 console.log("Invalid move:", move);
                 uniquesocket.emit("Invalid move", move);
@@ -74,13 +69,21 @@ io.on("connection", function (uniquesocket) {
         }
     });
 
-    // Handle Undo Move
-    uniquesocket.on("undoMove", function () {
-        if (moveHistory.length > 1) {
-            moveHistory.pop(); // Remove last move
-            let previousState = moveHistory[moveHistory.length - 1];
-            chess.load(previousState);
-            io.emit("undoMove", chess.fen());
+    // Handle undo
+    uniquesocket.on("undo", function () {
+        if (moveHistory.length > 0) {
+            chess.undo();
+            moveHistory.pop();
+            io.emit("undo");
+            io.emit("boardState", chess.fen());
+        }
+    });
+
+    // Check for game over
+    uniquesocket.on("move", function (move) {
+        if (chess.isGameOver()) {
+            const winner = chess.turn() === "w" ? "b" : "w";
+            io.emit("gameOver", { winner });
         }
     });
 });
