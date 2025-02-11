@@ -139,6 +139,24 @@ socket.on("gameOver", function ({ winner }) {
     }
 });
 
+socket.on("checkStatus", function (kingSquare) {
+    console.log("Check status received:", kingSquare);
+
+    // Remove existing check highlights
+    document.querySelectorAll(".square").forEach(square => {
+        square.classList.remove("check-highlight");
+    });
+
+    if (kingSquare) {
+        const kingSquareElement = document.querySelector(`[data-square="${kingSquare}"]`);
+        if (kingSquareElement) {
+            kingSquareElement.classList.add("check-highlight"); // Highlight king in check
+        }
+    }
+});
+
+
+
 if (undoButton) {
     undoButton.addEventListener("click", undoMove);
 }
