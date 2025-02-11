@@ -3,7 +3,6 @@ const http = require("http");
 const socket = require("socket.io");
 const { Chess } = require("chess.js");
 const path = require("path");
-const serverless = require("serverless-http");
 
 const app = express();
 const server = http.createServer(app);
@@ -111,8 +110,6 @@ io.on("connection", function (uniquesocket) {
         }
     });
 });
-module.exports = app;
-module.exports.handler = serverless(app);
-// server.listen(3000, function () {
-//     console.log("Listening to port 3000");
-// });
+server.listen(3000, function () {
+    console.log("Listening to port 3000");
+});
