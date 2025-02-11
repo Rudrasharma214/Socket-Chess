@@ -48,17 +48,27 @@ io.on("connection", function (uniquesocket) {
     uniquesocket.on("move", function (move) {
         try {
             console.log("Move received on server:", move);
-
+    
             if (chess.turn() === "w" && uniquesocket.id !== players.white) return;
             if (chess.turn() === "b" && uniquesocket.id !== players.black) return;
-
+    
+            const previousTurn = chess.turn(); // Store the turn before making the move
             const result = chess.move(move);
             if (result) {
-                moveHistory.push(move);
+                moveHistory.push({ move, fen: chess.fen() });
                 redoStack = []; // Clear redo stack when a new move is made
                 io.emit("move", move);
                 io.emit("boardState", chess.fen());
-
+    
+                // Check if the player who just moved put the opponent in check
+                const opponentColor = previousTurn === "w" ? "b" : "w";
+                if (chess.inCheck()) {
+                    const checkedKingSquare = findKingPosition(opponentColor);
+                    io.emit("checkStatus", checkedKingSquare);
+                } else {
+                    io.emit("checkStatus", null); // Remove highlight if no check
+                }
+    
                 if (chess.isGameOver()) {
                     const winner = chess.turn() === "w" ? "b" : "w";
                     io.emit("gameOver", { winner });
@@ -72,21 +82,30 @@ io.on("connection", function (uniquesocket) {
             uniquesocket.emit("Invalid move", move);
         }
     });
+    
+    // Find the king’s position
+    function findKingPosition(color) {
+        const board = chess.board();
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = board[row][col];
+                if (square && square.type === "k" && square.color === color) {
+                    return String.fromCharCode(97 + col) + (8 - row); // Convert to chess notation (e.g., "e1")
+                }
+            }
+        }
+        return null;
+    }
+    
+    
+    
+    
 
     uniquesocket.on("undo", function () {
         if (moveHistory.length > 0) {
             const lastMove = moveHistory.pop();
             redoStack.push(lastMove);
             chess.undo();
-            io.emit("boardState", chess.fen());
-        }
-    });
-
-    uniquesocket.on("redo", function () {
-        if (redoStack.length > 0) {
-            const redoMove = redoStack.pop();
-            chess.move(redoMove.move);
-            moveHistory.push(redoMove);
             io.emit("boardState", chess.fen());
         }
     });
