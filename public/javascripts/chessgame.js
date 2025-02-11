@@ -83,7 +83,9 @@ const handleMove = function (from, to) {
 };
 
 const undoMove = function () {
-    socket.emit("undo");
+    if (moveHistory.length > 0) {
+        socket.emit("undo");
+    }
 };
 
 const getPieceUnicode = function (piece) {
@@ -120,8 +122,9 @@ socket.on("move", function (move) {
 });
 
 socket.on("undo", function () {
-    if (chess.history().length > 0) {
+    if (moveHistory.length > 0) {
         chess.undo();
+        moveHistory.pop();
         renderBoard();
     }
 });
